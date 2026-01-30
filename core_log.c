@@ -94,8 +94,11 @@ void core_log_write(core_log_level_t level, const char *tag, const char *fmt, ..
      *   No timestamp + color   : "\033[0;31mE TAG: "
      *   No timestamp no color  : "E TAG: "
      */
-    if (s_color_enable) {
-        s_output_fn("%s", level_to_color(level));
+    const char *color = level_to_color(level);
+    int has_color = (s_color_enable && color[0] != '\0');
+
+    if (has_color) {
+        s_output_fn("%s", color);
     }
 
     if (s_timestamp_fn != NULL) {
@@ -115,10 +118,10 @@ void core_log_write(core_log_level_t level, const char *tag, const char *fmt, ..
         s_output_fn("%s", buf);
     }
 
-    /* Reset color and newline */
-    if (s_color_enable) {
-        s_output_fn("%s\n", CORE_LOG_COLOR_RESET);
+    /* Reset color and newline (\r\n for serial terminals like PuTTY) */
+    if (has_color) {
+        s_output_fn("%s\r\n", CORE_LOG_COLOR_RESET);
     } else {
-        s_output_fn("\n");
+        s_output_fn("\r\n");
     }
 }

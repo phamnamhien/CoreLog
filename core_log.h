@@ -140,8 +140,8 @@ void core_log_write(core_log_level_t level, const char *tag, const char *fmt, ..
 #define CORE_LOG_COLOR_E       CORE_LOG_COLOR_RED
 #define CORE_LOG_COLOR_W       CORE_LOG_COLOR_YELLOW
 #define CORE_LOG_COLOR_I       CORE_LOG_COLOR_GREEN
-#define CORE_LOG_COLOR_D       CORE_LOG_COLOR_CYAN
-#define CORE_LOG_COLOR_V       CORE_LOG_COLOR_MAGENTA
+#define CORE_LOG_COLOR_D       ""  /* No color (same as ESP-IDF) */
+#define CORE_LOG_COLOR_V       ""  /* No color (same as ESP-IDF) */
 
 /*============================================================================
  * Logging Macros

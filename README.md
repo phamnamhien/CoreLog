@@ -17,13 +17,13 @@ Inspired by **ESP-IDF ESP_LOG** — but designed to work on **any microcontrolle
 
 ## Log Levels
 
-| Level   | Macro    | Color   | Description           |
-|---------|----------|---------|-----------------------|
-| ERROR   | `LOG_E`  | Red     | Critical errors       |
-| WARN    | `LOG_W`  | Yellow  | Warnings              |
-| INFO    | `LOG_I`  | Green   | Informational         |
-| DEBUG   | `LOG_D`  | Cyan    | Debug details         |
-| VERBOSE | `LOG_V`  | Magenta | Verbose/trace output  |
+| Level   | Macro    | Color      | Description                        |
+|---------|----------|------------|------------------------------------|
+| ERROR   | `LOG_E`  | Red        | Critical errors, system cannot continue normally |
+| WARN    | `LOG_W`  | Yellow     | Warnings, something unexpected but recoverable  |
+| INFO    | `LOG_I`  | Green      | General informational, key events                |
+| DEBUG   | `LOG_D`  | *(no color)* | Debug details for development                  |
+| VERBOSE | `LOG_V`  | *(no color)* | Verbose trace, very detailed output            |
 
 ## Quick Start
 
@@ -36,13 +36,13 @@ Copy `core_log.h` and `core_log.c` into your source tree.
 ```c
 #include "core_log.h"
 
-// Initialize with your output function (printf-like)
+// Step 1 (required): Set output function — any printf-like function
 core_log_init(printf);
 
-// Optional: provide a timestamp function
+// Step 2 (optional): Set timestamp function
 core_log_set_timestamp(HAL_GetTick);  // STM32 example
 
-// Optional: enable ANSI colors
+// Step 3 (optional): Enable ANSI colors (only if terminal supports it)
 core_log_set_color(1);
 ```
 
@@ -62,9 +62,11 @@ LOG_V(TAG, "Entering main loop");
 
 **With timestamp + color enabled:**
 ```
-E (1234) MAIN: Sensor read failed: err=-1
-W (1235) MAIN: Temperature high: 42 C
-I (1236) MAIN: System initialized
+E (1234) MAIN: Sensor read failed: err=-1       ← Red
+W (1235) MAIN: Temperature high: 42 C           ← Yellow
+I (1236) MAIN: System initialized               ← Green
+D (1237) MAIN: Buffer allocated: 512 bytes       ← No color
+V (1238) MAIN: Entering main loop                ← No color
 ```
 
 **Without timestamp, no color:**
@@ -72,6 +74,48 @@ I (1236) MAIN: System initialized
 E MAIN: Sensor read failed: err=-1
 W MAIN: Temperature high: 42 C
 I MAIN: System initialized
+```
+
+## When to Use Each Log Level
+
+### `LOG_E` — Error
+System failures that need immediate attention. The program may not work correctly after this.
+```c
+LOG_E(TAG, "Flash write failed at addr 0x%08X", addr);
+LOG_E(TAG, "I2C timeout on bus %d", bus_id);
+LOG_E(TAG, "Out of memory: requested %u bytes", size);
+```
+
+### `LOG_W` — Warning
+Something unexpected happened, but the system can continue. Often indicates a condition that might become an error.
+```c
+LOG_W(TAG, "Retry %d/%d: sensor not responding", attempt, max_retries);
+LOG_W(TAG, "Battery low: %d%%", battery_pct);
+LOG_W(TAG, "Queue almost full: %d/%d", count, capacity);
+```
+
+### `LOG_I` — Info
+Key events and state changes. Useful for understanding program flow in production.
+```c
+LOG_I(TAG, "System initialized, firmware v%s", FW_VERSION);
+LOG_I(TAG, "WiFi connected: %s", ssid);
+LOG_I(TAG, "OTA update completed, rebooting...");
+```
+
+### `LOG_D` — Debug
+Detailed information useful during development. Typically disabled in release builds.
+```c
+LOG_D(TAG, "Received %d bytes from UART", len);
+LOG_D(TAG, "Task stack remaining: %u bytes", stack_free);
+LOG_D(TAG, "ADC raw=%d, voltage=%dmV", raw, mv);
+```
+
+### `LOG_V` — Verbose
+Very detailed trace output. High frequency, used for deep debugging of specific issues.
+```c
+LOG_V(TAG, "SPI TX: [%02X %02X %02X %02X]", buf[0], buf[1], buf[2], buf[3]);
+LOG_V(TAG, "State machine: %s -> %s", state_names[old], state_names[new]);
+LOG_V(TAG, "Timer ISR fired, counter=%lu", counter);
 ```
 
 ## API Reference
@@ -100,6 +144,10 @@ Example: build with only errors and warnings:
 
 **STM32 (HAL + UART printf redirect):**
 ```c
+// 1. Init hardware first (application responsibility)
+HAL_UART_Init(&huart1);
+
+// 2. Then init CoreLog
 core_log_init(printf);
 core_log_set_timestamp(HAL_GetTick);
 ```
@@ -116,12 +164,22 @@ int my_printf(const char *fmt, ...) {
     return len;
 }
 
-core_log_init(my_printf);
-core_log_set_timestamp(millis);
+void setup() {
+    // 1. Init hardware first
+    Serial.begin(115200);
+
+    // 2. Then init CoreLog
+    core_log_init(my_printf);
+    core_log_set_timestamp(millis);
+}
 ```
 
 **SEGGER RTT:**
 ```c
+// 1. Init RTT first
+SEGGER_RTT_Init();
+
+// 2. Then init CoreLog
 core_log_init(SEGGER_RTT_printf);  // or a wrapper
 ```
 
